@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::math::vec3;
+use bevy::input::mouse::MouseWheel;
 use bevy_pancam::PanCamPlugin;
 use noise::{NoiseFn, Perlin};
 use serde::{Deserialize, Serialize};
@@ -41,8 +42,41 @@ fn main() {
             ..default()
         }), PanCamPlugin::default()))
         .add_systems(Startup, init_app)
-        .add_systems(Update, update_tiles)
+        .add_systems(Update, (camera_movement, update_tiles))
         .run();
+}
+
+fn camera_movement(
+    mut cam_query: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut scroll_evr: EventReader<MouseWheel>,
+    time: Res<Time>,
+) {
+    let (mut transform, mut projection) = cam_query.single_mut();
+
+    let mut direction = Vec3::ZERO;
+    let speed = 500.0;
+    let delta = time.delta_seconds();
+
+    if keyboard_input.pressed(KeyCode::KeyW) || keyboard_input.pressed(KeyCode::ArrowUp) {
+        direction.y += 1.0;
+    }
+    if keyboard_input.pressed(KeyCode::KeyS) || keyboard_input.pressed(KeyCode::ArrowDown) {
+        direction.y -= 1.0;
+    }
+    if keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft) {
+        direction.x -= 1.0;
+    }
+    if keyboard_input.pressed(KeyCode::KeyD) || keyboard_input.pressed(KeyCode::ArrowRight) {
+        direction.x += 1.0;
+    }
+
+    transform.translation += direction.normalize_or_zero() * speed * delta;
+
+    for ev in scroll_evr.read() {
+        let zoom_change = ev.y * 0.1;
+        projection.scale = (projection.scale - zoom_change).clamp(0.1, 10.0);
+    }
 }
 
 fn init_app(mut commands: Commands) {
