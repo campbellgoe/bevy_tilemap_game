@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::math::vec3;
 // use bevy::input::mouse::MouseWheel;
 use bevy_pancam::{DirectionKeys, PanCam, PanCamPlugin};
-use noise::{NoiseFn, Perlin};
+use noise::{NoiseFn, Simplex, Perlin};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -27,7 +27,7 @@ struct SerializableTile {
 }
 
 const TILE_SIZE: f32 = 32.0;
-const VIEW_RADIUS: i32 = 20;
+const VIEW_RADIUS: i32 = 60;
 
 fn main() {
     App::new()
@@ -90,7 +90,7 @@ fn init_app(mut commands: Commands) {
             left:  vec![KeyCode::KeyA],
             right: vec![KeyCode::KeyD],
         },
-        speed: 40., // the speed for the keyboard movement
+        speed: 300., // the speed for the keyboard movement
         enabled: true, // when false, controls are disabled. See toggle example.
         zoom_to_cursor: true, // whether to zoom towards the mouse or the center of the screen
         min_scale: 1., // prevent the camera from zooming too far in
@@ -132,15 +132,15 @@ fn update_tiles(
         }
     }
 
-    let perlin = Perlin::new(1);
-
+    let simplex = Simplex::new(1000);
+    let perlin = Perlin::new(1000);
     for &(x, y) in &visible_tiles {
         if tile_map.spawned.contains(&(x, y)) {
             continue;
         }
 
         let tile_type = tile_map.tiles.entry((x, y)).or_insert_with(|| {
-            let noise = perlin.get([x as f64 / 10.0, y as f64 / 10.0]);
+            let noise = (simplex.get([x as f64 / 10.0, y as f64 / 10.0]) + perlin.get([x as f64 / 10.0, y as f64 / 10.0]))/2.;
             match noise {
                 n if n < -0.2 => TileType::Water,
                 n if n < 0.4 => TileType::Grass,
@@ -150,7 +150,7 @@ fn update_tiles(
 
         let color = match tile_type {
             TileType::Grass => Color::srgb(0.3, 1.0, 0.3),
-            TileType::Water => Color::srgb(0.3, 0.3, 1.0),
+            TileType::Water => Color::srgb(0.0, 0.3, 1.0),
             TileType::Mountain => Color::srgb(0.3, 0.3, 0.3),
         };
 
