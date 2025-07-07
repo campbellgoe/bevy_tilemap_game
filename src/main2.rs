@@ -114,7 +114,8 @@ persp_visibility.is_visible = !persp_visibility.is_visible;
 
 
         if let Some(mut pancam) = pancam_option {
-            pancam.enabled = ortho_visibility.is_visible;
+            pancam.enabled = ortho_visibility.is_visible
+        ;
         }
 
         // Optional: You might want to reset the perspective camera's position
